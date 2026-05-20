@@ -1,5 +1,7 @@
 # 📈 Curvas de Lactancia — Modelo Wood
 
+https://josefernandoguarin.github.io/CurvasLactanciaWood/
+
 Aplicación web independiente para ajustar el **Modelo Gamma Incompleto de Wood (1967)** a datos de producción de leche bovina. Desarrollada para uso docente e investigativo en sistemas de producción lechera especializada.
 
 > Desarrollada por el [Grupo Leche UdeA](https://www.udea.edu.co) · Departamento de Producción Agropecuaria · Facultad de Ciencias Agrarias · Universidad de Antioquia
