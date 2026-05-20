@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Curvas de Lactancia — Modelo Wood</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --teal:#1D9E75;--teal2:#0F6E56;--teal-bg:#E1F5EE;
+  --blue:#185FA5;--blue-bg:#E6F1FB;
+  --amber:#BA7517;--amber-bg:#FAEEDA;
+  --red:#A32D2D;--red-bg:#FCEBEB;
+  --gray:#5F5E5A;--gray-bg:#F1EFE8;--gray-border:#D3D1C7;
+  --text:#2C2C2A;--text2:#888780;
+  --bg:#F5F4F0;--white:#ffffff;
+  --r:8px;--rl:12px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;color:var(--text);background:var(--bg);min-height:100vh}
+/* Header */
+header{background:var(--white);border-bottom:1px solid var(--gray-border);padding:12px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10}
+.hlogo{width:34px;height:34px;background:var(--teal);border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+header h1{font-size:15px;font-weight:600}
+header p{font-size:11px;color:var(--text2)}
+.hbadge{margin-left:auto;font-size:10px;background:var(--teal-bg);color:var(--teal2);padding:3px 10px;border-radius:20px;font-weight:600;white-space:nowrap}
+/* Layout */
+.wrap{display:flex;height:calc(100vh - 57px);overflow:hidden}
+/* Sidebar */
+.side{width:360px;min-width:300px;background:var(--white);border-right:1px solid var(--gray-border);display:flex;flex-direction:column;overflow:hidden}
+/* Cow tabs */
+.tabs{display:flex;overflow-x:auto;background:var(--gray-bg);border-bottom:1px solid var(--gray-border);padding:8px 8px 0;gap:3px;flex-shrink:0;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:var(--r) var(--r) 0 0;cursor:pointer;font-size:12px;white-space:nowrap;border:1px solid transparent;border-bottom:none;background:transparent;color:var(--text2);transition:all .15s;user-select:none}
+.tab:hover{background:var(--white);color:var(--text)}
+.tab.on{background:var(--white);color:var(--text);border-color:var(--gray-border);font-weight:500}
+.tab .x{background:none;border:none;cursor:pointer;color:var(--text2);font-size:13px;padding:0;line-height:1;opacity:0;transition:opacity .1s}
+.tab:hover .x,.tab.on .x{opacity:.5}
+.tab .x:hover{opacity:1!important;color:var(--red)}
+.addbtn{padding:5px 10px;background:none;border:none;cursor:pointer;color:var(--teal);font-size:20px;font-weight:300;border-radius:var(--r) var(--r) 0 0;align-self:flex-end;line-height:1.1}
+.addbtn:hover{background:var(--teal-bg)}
+/* Input area */
+.inp{flex:1;overflow-y:auto;padding:14px}
+.lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text2);margin-bottom:5px;display:block}
+.frow{margin-bottom:12px}
+input[type=text],input[type=date],select{width:100%;padding:6px 9px;border:1px solid var(--gray-border);border-radius:var(--r);font-size:13px;color:var(--text);background:var(--white);outline:none;transition:border-color .15s}
+input:focus,select:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(29,158,117,.12)}
+.tog{display:flex;border:1px solid var(--gray-border);border-radius:var(--r);overflow:hidden}
+.togbtn{flex:1;padding:6px 4px;cursor:pointer;background:var(--white);border:none;font-size:11px;color:var(--text2);transition:all .15s;text-align:center}
+.togbtn.on{background:var(--teal);color:#fff;font-weight:600}
+textarea{width:100%;height:190px;padding:7px 9px;border:1px solid var(--gray-border);border-radius:var(--r);font-size:11.5px;font-family:'Courier New',monospace;color:var(--text);resize:vertical;outline:none;line-height:1.55;transition:border-color .15s}
+textarea:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(29,158,117,.12)}
+.hint{font-size:10.5px;color:var(--text2);margin-top:4px;line-height:1.4}
+.hint.ok{color:var(--teal2)}
+.hint.warn{color:var(--amber)}
+.hint.err{color:var(--red)}
+.btn{padding:8px 14px;border-radius:var(--r);border:none;cursor:pointer;font-size:13px;font-weight:500;transition:all .15s}
+.btn-p{background:var(--teal);color:#fff;width:100%;padding:9px}
+.btn-p:hover{background:var(--teal2)}
+.btn-s{background:var(--white);color:var(--text);border:1px solid var(--gray-border);flex:1}
+.btn-s:hover{background:var(--gray-bg)}
+.brow{display:flex;gap:7px;margin-top:7px}
+.ex-link{font-size:10.5px;color:var(--teal);cursor:pointer;text-decoration:underline;text-underline-offset:2px;background:none;border:none;padding:0}
+/* Main */
+.main{flex:1;overflow-y:auto;padding:18px 20px}
+/* Cards */
+.section-hd{font-size:13px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:7px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--teal);flex-shrink:0}
+.cgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.card{background:var(--white);border:1px solid var(--gray-border);border-radius:var(--rl);padding:11px 13px}
+.card.hi{border-color:var(--teal);background:var(--teal-bg)}
+.cl{font-size:10.5px;color:var(--text2);margin-bottom:3px}
+.cv{font-size:19px;font-weight:600;line-height:1}
+.card.hi .cv{color:var(--teal2)}
+.cu{font-size:10px;color:var(--text2);margin-top:2px}
+/* Formula box */
+.fbox{background:var(--gray-bg);border:1px solid var(--gray-border);border-radius:var(--r);padding:9px 13px;font-size:12.5px;font-family:'Courier New',monospace;margin-bottom:12px;color:var(--text);line-height:1.5}
+/* Chart */
+.chart-wrap{background:var(--white);border:1px solid var(--gray-border);border-radius:var(--rl);padding:14px;margin-bottom:14px}
+.chart-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.chart-title{font-size:12px;font-weight:500}
+.legend{display:flex;gap:14px;font-size:10.5px;color:var(--text2)}
+.li{display:flex;align-items:center;gap:5px}
+.ldot{width:7px;height:7px;border-radius:50%}
+.lline{width:14px;height:2px}
+/* Table */
+.itbl{width:100%;border-collapse:collapse;font-size:11.5px;background:var(--white);border-radius:var(--rl);overflow:hidden;border:1px solid var(--gray-border);margin-bottom:14px}
+.itbl th{background:var(--gray-bg);padding:7px 11px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text2);border-bottom:1px solid var(--gray-border)}
+.itbl td{padding:7px 11px;border-bottom:1px solid rgba(0,0,0,.05);vertical-align:top;line-height:1.45}
+.itbl tr:last-child td{border-bottom:none}
+.itbl tr:nth-child(even) td{background:rgba(0,0,0,.018)}
+/* Error */
+.ebox{background:var(--red-bg);border:1px solid #F7C1C1;border-radius:var(--r);padding:11px 13px;color:var(--red);font-size:12.5px;margin-bottom:12px;line-height:1.5}
+/* Empty */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:var(--text2);text-align:center;min-height:400px}
+.empty-ico{font-size:38px;margin-bottom:14px;opacity:.35}
+.empty h3{font-size:14px;font-weight:600;color:var(--text);margin-bottom:7px}
+.empty p{font-size:12px;line-height:1.65}
+/* Multi-curve overlay */
+.overlay-row{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:12px;color:var(--text2)}
+.overlay-row label{cursor:pointer;display:flex;align-items:center;gap:5px}
+/* Separator */
+hr.sec{border:none;border-top:1px solid var(--gray-border);margin:14px 0}
+/* Footer */
+.foot{text-align:center;padding:10px;font-size:10.5px;color:var(--text2);border-top:1px solid var(--gray-border);margin-top:6px}
+/* Responsive */
+@media(max-width:680px){
+  .wrap{flex-direction:column;height:auto;overflow:visible}
+  .side{width:100%;min-width:0;border-right:none;border-bottom:1px solid var(--gray-border)}
+  .main{padding:14px}
+  .cgrid{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hlogo">🐄</div>
+  <div>
+    <h1>Curvas de Lactancia — Modelo Wood</h1>
+    <p>Ajuste del Modelo Gamma Incompleto · Mínimos Cuadrados Linealizados</p>
+  </div>
+  <div class="hbadge">Grupo Leche UdeA</div>
+</header>
+
+<div class="wrap">
+  <!-- ══ SIDEBAR ══ -->
+  <div class="side">
+    <div class="tabs" id="tabs"></div>
+    <div class="inp">
+
+      <div class="frow">
+        <label class="lbl">Identificación de la vaca</label>
+        <input type="text" id="cowName" placeholder="Ej. Holstein 01, Arete #234..." oninput="nameChange(this.value)">
+      </div>
+
+      <div class="frow">
+        <label class="lbl">Tipo de registro de tiempo</label>
+        <div class="tog">
+          <button class="togbtn on" id="btnDEL" onclick="setMode('del')">Días en Leche (DEL)</button>
+          <button class="togbtn" id="btnDate" onclick="setMode('date')">Fechas de control</button>
+        </div>
+      </div>
+
+      <div class="frow" id="calvRow" style="display:none">
+        <label class="lbl">Fecha de parto</label>
+        <input type="date" id="calvDate" oninput="cowData()">
+      </div>
+
+      <div class="frow">
+        <label class="lbl">Unidad de producción</label>
+        <select id="unitSel" oninput="cowData()">
+          <option>L/día</option>
+          <option>L/semana</option>
+          <option>kg/día</option>
+        </select>
+      </div>
+
+      <div class="frow">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+          <label class="lbl" style="margin:0" id="colHdr">DEL → Producción</label>
+          <button class="ex-link" onclick="loadEx()">cargar ejemplo</button>
+        </div>
+        <textarea id="dataIn"
+          placeholder="Pegue aquí (tab, coma o punto y coma)&#10;&#10;Ejemplo:&#10;7&#9;18.5&#10;14&#9;22.3&#10;21&#9;24.1&#10;28&#9;23.8&#10;..."
+          oninput="cowData()"></textarea>
+        <div class="hint" id="stat">Ingrese datos para comenzar.</div>
+      </div>
+
+      <button class="btn btn-p" onclick="fit()">▶ Ajustar curva de Wood</button>
+      <div class="brow">
+        <button class="btn btn-s" onclick="clearCow()">Limpiar</button>
+        <button class="btn btn-s" onclick="exportCSV()">Exportar CSV</button>
+        <button class="btn btn-s" onclick="addCow()">+ Vaca</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ MAIN ══ -->
+  <div class="main" id="main">
+    <div class="empty">
+      <div class="empty-ico">📈</div>
+      <h3>Ingrese datos de producción de leche</h3>
+      <p>Pegue dos columnas en el panel izquierdo:<br>
+        <strong>DEL</strong> (o fecha) y <strong>producción</strong>,<br>
+        luego presione <em>Ajustar curva de Wood</em>.</p>
+      <p style="margin-top:14px;font-size:11px;max-width:320px">
+        Modelo: <strong>Y(t) = a · t<sup>b</sup> · e<sup>−ct</sup></strong><br>
+        a = producción inicial &nbsp;·&nbsp; b = tasa de ascenso &nbsp;·&nbsp; c = tasa de declinación<br>
+        t_pico = b/c &nbsp;·&nbsp; y_max = a·(b/c)<sup>b</sup>·e<sup>−b</sup> &nbsp;·&nbsp; s = −(b+1)·ln(c)
+      </p>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ───────────────────────────────────────────────────────────────────
+const COLORS=['#1D9E75','#185FA5','#D85A30','#533AB7','#BA7517','#639922','#D4537E','#888780'];
+let cows=[{id:1,name:'Vaca 1',mode:'del',calv:'',unit:'L/día',raw:'',res:null}];
+let ai=0, cid=1;
+let ch=null;
+
+// ── Math ────────────────────────────────────────────────────────────────────
+function gaussElim(A,b){
+  const n=A.length,M=A.map((r,i)=>[...r,b[i]]);
+  for(let c=0;c<n;c++){
+    let mx=c;
+    for(let r=c+1;r<n;r++) if(Math.abs(M[r][c])>Math.abs(M[mx][c])) mx=r;
+    [M[c],M[mx]]=[M[mx],M[c]];
+    if(Math.abs(M[c][c])<1e-14) return null;
+    for(let r=0;r<n;r++){
+      if(r===c) continue;
+      const f=M[r][c]/M[c][c];
+      for(let k=c;k<=n;k++) M[r][k]-=f*M[c][k];
+    }
+  }
+  return M.map((r,i)=>r[n]/r[i]);
+}
+
+function woodY(a,b,c,t){ return a*Math.pow(t,b)*Math.exp(-c*t); }
+
+function fitWood(pts){
+  const d=pts.filter(p=>p.t>0&&p.y>0);
+  if(d.length<3) return{err:'Se necesitan al menos 3 observaciones válidas (t > 0, producción > 0).'};
+  const n=d.length;
+  const lnY=d.map(p=>Math.log(p.y));
+  const lnT=d.map(p=>Math.log(p.t));
+  const T=d.map(p=>p.t);
+  let XtX=[[0,0,0],[0,0,0],[0,0,0]],XtY=[0,0,0];
+  for(let i=0;i<n;i++){
+    const x=[1,lnT[i],T[i]];
+    for(let j=0;j<3;j++){
+      XtY[j]+=x[j]*lnY[i];
+      for(let k=0;k<3;k++) XtX[j][k]+=x[j]*x[k];
+    }
+  }
+  const beta=gaussElim(XtX,XtY);
+  if(!beta) return{err:'Matriz singular — verifique que los datos tengan suficiente variación en t y en producción.'};
+  const a=Math.exp(beta[0]),b=beta[1],c=-beta[2];
+  if(b<=0) return{err:`b = ${beta[1].toFixed(4)} ≤ 0. Incluya observaciones de las primeras semanas post-parto (fase ascendente de la curva).`};
+  if(c<=0) return{err:`c = ${(-beta[2]).toFixed(5)} ≤ 0. La curva no muestra fase descendente. Incluya registros de la segunda mitad de la lactancia.`};
+  const tP=b/c;
+  const yM=woodY(a,b,c,tP);
+  const s=-(b+1)*Math.log(c);
+  const yO=d.map(p=>p.y);
+  const yH=d.map(p=>woodY(a,b,c,p.t));
+  const mn=yO.reduce((s,v)=>s+v,0)/n;
+  const sst=yO.reduce((s,v)=>s+(v-mn)**2,0);
+  const ssr=yO.reduce((s,v,i)=>s+(v-yH[i])**2,0);
+  const r2=Math.max(0,1-ssr/sst);
+  const rmse=Math.sqrt(ssr/n);
+  return{a,b,c,tP,yM,s,r2,rmse,n,d,yH};
+}
+
+// ── Parse ────────────────────────────────────────────────────────────────────
+function parsePts(txt,mode,calv){
+  const lines=txt.trim().split('\n').filter(l=>l.trim());
+  const pts=[]; let bad=0;
+  let calvMs=null;
+  if(mode==='date'&&calv) calvMs=new Date(calv).getTime();
+  for(const ln of lines){
+    const parts=ln.trim().split(/[\t,;]+/).map(s=>s.trim()).filter(s=>s);
+    if(parts.length<2){bad++;continue;}
+    let t,y;
+    if(mode==='date'){
+      const dt=new Date(parts[0]);
+      if(isNaN(dt.getTime())){bad++;continue;}
+      t=calvMs?Math.round((dt.getTime()-calvMs)/86400000)+1:pts.length+1;
+    } else {
+      t=parseFloat(parts[0].replace(',','.'));
+      if(isNaN(t)){bad++;continue;}
+    }
+    y=parseFloat(parts[1].replace(',','.'));
+    if(isNaN(y)||y<=0||t<=0){bad++;continue;}
+    pts.push({t,y});
+  }
+  pts.sort((a,b)=>a.t-b.t);
+  return{pts,bad};
+}
+
+// ── UI helpers ───────────────────────────────────────────────────────────────
+function renderTabs(){
+  const el=document.getElementById('tabs');
+  el.innerHTML='';
+  cows.forEach((cow,i)=>{
+    const t=document.createElement('div');
+    t.className='tab'+(i===ai?' on':'');
+    t.innerHTML=`<span onclick="switchCow(${i})">${esc(cow.name)}</span>`+
+      `<button class="x" onclick="remCow(${i})" title="Eliminar">×</button>`;
+    el.appendChild(t);
+  });
+  const plus=document.createElement('button');
+  plus.className='addbtn'; plus.textContent='+'; plus.title='Nueva vaca';
+  plus.onclick=addCow; el.appendChild(plus);
+}
+
+function esc(s){ return s.replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function loadUI(){
+  const c=cows[ai];
+  document.getElementById('cowName').value=c.name;
+  document.getElementById('dataIn').value=c.raw;
+  document.getElementById('unitSel').value=c.unit;
+  document.getElementById('calvDate').value=c.calv;
+  setModeUI(c.mode);
+  updateStat();
+}
+
+function saveUI(){
+  const c=cows[ai];
+  c.name=document.getElementById('cowName').value||c.name;
+  c.mode=document.getElementById('btnDEL').classList.contains('on')?'del':'date';
+  c.calv=document.getElementById('calvDate').value;
+  c.unit=document.getElementById('unitSel').value;
+  c.raw=document.getElementById('dataIn').value;
+}
+
+function setModeUI(m){
+  document.getElementById('btnDEL').classList.toggle('on',m==='del');
+  document.getElementById('btnDate').classList.toggle('on',m==='date');
+  document.getElementById('calvRow').style.display=m==='date'?'block':'none';
+  document.getElementById('colHdr').textContent=m==='del'?'DEL → Producción':'Fecha → Producción';
+  document.getElementById('dataIn').placeholder=m==='del'
+    ?"Pegue dos columnas (tab, coma o punto y coma)\n\nEjemplo:\n7\t18.5\n14\t22.3\n21\t24.1\n28\t23.8\n35\t23.0\n..."
+    :"Pegue fecha y producción\n\nEjemplo:\n2025-01-08\t18.5\n2025-01-15\t22.3\n2025-01-22\t24.1\n...";
+}
+
+function updateStat(){
+  const c=cows[ai];
+  const txt=document.getElementById('dataIn').value;
+  const el=document.getElementById('stat');
+  if(!txt.trim()){el.className='hint';el.textContent='Ingrese datos para comenzar.';return;}
+  const{pts,bad}=parsePts(txt,c.mode,c.calv);
+  const n=pts.length;
+  let cls='hint ok',msg=`${n} observaciones válidas${bad?`, ${bad} líneas ignoradas`:''}.`;
+  if(n>=10) msg+=' ✓ Suficientes datos.';
+  else if(n>=3){cls='hint warn';msg+=' ⚠ Más datos mejoran el ajuste.';}
+  else{cls='hint err';msg+=' ✗ Se necesitan al menos 3 observaciones.';}
+  el.className=cls; el.textContent=msg;
+}
+
+// ── Cow management ───────────────────────────────────────────────────────────
+function addCow(){
+  saveUI(); cid++;
+  cows.push({id:cid,name:`Vaca ${cid}`,mode:'del',calv:'',unit:'L/día',raw:'',res:null});
+  ai=cows.length-1;
+  renderTabs(); loadUI(); renderResults();
+}
+
+function remCow(i){
+  if(cows.length===1){clearCow();return;}
+  cows.splice(i,1);
+  if(ai>=cows.length) ai=cows.length-1;
+  renderTabs(); loadUI(); renderResults();
+}
+
+function switchCow(i){
+  saveUI(); ai=i;
+  renderTabs(); loadUI(); renderResults();
+}
+
+function nameChange(v){
+  cows[ai].name=v||`Vaca ${cows[ai].id}`;
+  renderTabs();
+}
+
+function setMode(m){saveUI();cows[ai].mode=m;setModeUI(m);}
+function cowData(){cows[ai].raw=document.getElementById('dataIn').value;cows[ai].calv=document.getElementById('calvDate').value;cows[ai].unit=document.getElementById('unitSel').value;updateStat();}
+function clearCow(){document.getElementById('dataIn').value='';cows[ai].raw='';cows[ai].res=null;updateStat();renderResults();}
+
+// ── Fit ──────────────────────────────────────────────────────────────────────
+function fit(){
+  saveUI();
+  const c=cows[ai];
+  const{pts,bad}=parsePts(c.raw,c.mode,c.calv);
+  if(pts.length<3){alert('Se necesitan al menos 3 observaciones válidas (t > 0, producción > 0).');return;}
+  c.res=fitWood(pts);
+  renderResults();
+}
+
+// ── Render results ───────────────────────────────────────────────────────────
+function renderResults(){
+  const el=document.getElementById('main');
+  const c=cows[ai];
+  if(!c.res){
+    el.innerHTML=`<div class="empty"><div class="empty-ico">📈</div>
+    <h3>Ingrese datos de producción de leche</h3>
+    <p>Pegue dos columnas en el panel izquierdo:<br><strong>DEL</strong> (o fecha) y <strong>producción</strong>,<br>luego presione <em>Ajustar curva de Wood</em>.</p>
+    <p style="margin-top:14px;font-size:11px;max-width:320px">
+    Modelo: <strong>Y(t) = a · t<sup>b</sup> · e<sup>−ct</sup></strong><br>
+    a = producción inicial &nbsp;·&nbsp; b = tasa de ascenso &nbsp;·&nbsp; c = tasa de declinación<br>
+    t_pico = b/c &nbsp;·&nbsp; y_max = a·(b/c)<sup>b</sup>·e<sup>−b</sup> &nbsp;·&nbsp; s = −(b+1)·ln(c)
+    </p></div>`;
+    return;
+  }
+  const r=c.res, col=COLORS[ai%COLORS.length], unit=c.unit||'L/día';
+  const tLbl=c.unit.includes('semana')?'semanas':'días';
+
+  if(r.err){
+    el.innerHTML=`<div class="section-hd"><div class="dot" style="background:#E24B4A"></div>${esc(c.name)}</div>
+    <div class="ebox">⚠ ${r.err}</div>
+    <p style="font-size:11.5px;color:var(--text2);line-height:1.6">El modelo de Wood requiere datos que cubran tanto la fase <strong>ascendente</strong> (primeras semanas) como la <strong>descendente</strong> (segunda mitad) de la lactancia. Revise que la producción suba y luego baje en el conjunto de datos.</p>`;
+    return;
+  }
+
+  const r2cls=r.r2>=.90?'ok':r.r2>=.75?'warn':'err';
+  const r2msg=r.r2>=.90?'✓ Buen ajuste':r.r2>=.75?'⚠ Aceptable':'✗ Revisar datos';
+
+  el.innerHTML=`
+  <div class="section-hd"><div class="dot" style="background:${col}"></div>${esc(c.name)}</div>
+
+  <div class="fbox">
+    <strong>Ecuación ajustada:</strong><br>
+    Y(t) = ${r.a.toFixed(4)} · t<sup>${r.b.toFixed(4)}</sup> · e<sup>−${r.c.toFixed(6)} · t</sup>
+  </div>
+
+  <div class="cgrid">
+    <div class="card"><div class="cl">a — Producción inicial</div><div class="cv">${r.a.toFixed(3)}</div><div class="cu">${unit}</div></div>
+    <div class="card"><div class="cl">b — Tasa de ascenso</div><div class="cv">${r.b.toFixed(4)}</div><div class="cu">adimensional</div></div>
+    <div class="card"><div class="cl">c — Tasa de declinación</div><div class="cv">${r.c.toFixed(5)}</div><div class="cu">por ${tLbl.replace('s','')}</div></div>
+    <div class="card hi"><div class="cl">t_pico — Día al pico</div><div class="cv">${r.tP.toFixed(1)}</div><div class="cu">${tLbl}</div></div>
+    <div class="card hi"><div class="cl">y_max — Producción en pico</div><div class="cv">${r.yM.toFixed(2)}</div><div class="cu">${unit}</div></div>
+    <div class="card"><div class="cl">s — Persistencia (Wood)</div><div class="cv">${r.s.toFixed(3)}</div><div class="cu">índice</div></div>
+  </div>
+
+  <div class="cgrid">
+    <div class="card"><div class="cl">R² (escala original)</div><div class="cv" style="font-size:17px">${(r.r2*100).toFixed(1)}%</div><div class="cu ${r2cls}">${r2msg}</div></div>
+    <div class="card"><div class="cl">RMSE</div><div class="cv" style="font-size:17px">${r.rmse.toFixed(2)}</div><div class="cu">${unit}</div></div>
+    <div class="card"><div class="cl">Observaciones</div><div class="cv" style="font-size:17px">${r.n}</div><div class="cu">datos válidos</div></div>
+  </div>
+
+  <div class="chart-wrap">
+    <div class="chart-hd">
+      <div class="chart-title">Curva de lactancia — ${esc(c.name)}</div>
+      <div class="legend">
+        <div class="li"><div class="ldot" style="background:${col}"></div><span>Observado</span></div>
+        <div class="li"><div class="lline" style="background:${col}"></div><span>Modelo Wood</span></div>
+      </div>
+    </div>
+    <canvas id="wc" height="280"></canvas>
+  </div>
+
+  <hr class="sec">
+  <div class="section-hd"><div class="dot"></div>Interpretación de los parámetros estimados</div>
+  <table class="itbl">
+    <thead><tr><th>Parámetro</th><th>Valor obtenido</th><th>Significado biológico</th><th>Referencia — trópico alto colombiano</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>a</strong> (β₀)</td>
+        <td>${r.a.toFixed(3)} ${unit}</td>
+        <td>Nivel de producción al inicio de la lactancia. Refleja la capacidad secretora de la glándula mamaria en el día 1.</td>
+        <td>Holstein: 15–22 L/día<br>BON×Holstein: 10–16 L/día<br><em>Cañas et al., 2009</em></td>
+      </tr>
+      <tr>
+        <td><strong>b</strong> (β₁)</td>
+        <td>${r.b.toFixed(4)}</td>
+        <td>Tasa de aceleración hacia el pico. Valores altos = pico más pronunciado; valores bajos = curva más plana al inicio.</td>
+        <td>Holstein: 0.10–0.25<br>BON×Holstein: 0.15–0.30</td>
+      </tr>
+      <tr>
+        <td><strong>c</strong> (β₂)</td>
+        <td>${r.c.toFixed(5)}</td>
+        <td>Tasa de declinación post-pico. Mayor c = caída más rápida. Se relaciona inversamente con la persistencia de la lactancia.</td>
+        <td>Holstein: 0.025–0.045<br>BON×Holstein: 0.030–0.050</td>
+      </tr>
+      <tr>
+        <td><strong>t_pico</strong> = b/c</td>
+        <td>${r.tP.toFixed(1)} ${tLbl}</td>
+        <td>Momento en que la vaca alcanza su máxima producción. Las vacas de 2.º parto suelen llegar al pico antes que las de 1.º.</td>
+        <td>Holstein 1er parto: 28–42 días<br>Holstein 2.º parto: 20–35 días</td>
+      </tr>
+      <tr>
+        <td><strong>y_max</strong></td>
+        <td>${r.yM.toFixed(2)} ${unit}</td>
+        <td>Producción máxima diaria estimada. Punto de mayor exigencia nutricional — balance energético negativo más profundo.</td>
+        <td>Holstein 1er parto: 18–25 L<br>Holstein 2.º parto: 22–30 L</td>
+      </tr>
+      <tr>
+        <td><strong>s</strong> = −(b+1)·ln(c)</td>
+        <td>${r.s.toFixed(3)}</td>
+        <td>Índice de persistencia de Wood. Mayor valor = descenso más gradual post-pico = más días sobre umbrales de producción.</td>
+        <td>Parto 1: mayor persistencia que parto 2.º<br>Vacas BON×H tienden a mayor persistencia</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="foot">Modelo Gamma Incompleto · Wood (1967) · Ajuste por MCO linealizados · ln(Y) = ln(a) + b·ln(t) − c·t</div>
+  `;
+
+  setTimeout(()=>drawChart(r,col,unit,tLbl,c.name),30);
+}
+
+// ── Chart ────────────────────────────────────────────────────────────────────
+// Register peak-line plugin once
+const peakPlugin={
+  id:'peak',
+  afterDraw(chart){
+    if(!chart._peakT) return;
+    const{ctx,scales:{x,y}}=chart;
+    const px=x.getPixelForValue(chart._peakT);
+    ctx.save();
+    ctx.beginPath(); ctx.setLineDash([4,4]);
+    ctx.strokeStyle='rgba(0,0,0,.22)'; ctx.lineWidth=1;
+    ctx.moveTo(px,y.top); ctx.lineTo(px,y.bottom); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='rgba(0,0,0,.38)'; ctx.font='10px sans-serif';
+    ctx.textAlign='center';
+    ctx.fillText(`pico: ${chart._peakT.toFixed(0)} ${chart._peakUnit}`,px,y.top+11);
+    ctx.restore();
+  }
+};
+Chart.register(peakPlugin);
+
+function h2r(hex,a){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return`rgba(${r},${g},${b},${a})`;}
+
+function drawChart(r,col,unit,tLbl,name){
+  const cv=document.getElementById('wc');
+  if(!cv) return;
+  if(ch){ch.destroy();ch=null;}
+  const tMax=Math.max(...r.d.map(p=>p.t));
+  const tEnd=Math.max(tMax*1.05, r.tP*2.8);
+  const step=tEnd/300;
+  const curve=[];
+  for(let t=step;t<=tEnd;t+=step) curve.push({x:parseFloat(t.toFixed(2)),y:parseFloat(woodY(r.a,r.b,r.c,t).toFixed(3))});
+  const obs=r.d.map(p=>({x:p.t,y:p.y}));
+
+  ch=new Chart(cv,{
+    type:'scatter',
+    data:{datasets:[
+      {label:'Observado',data:obs,backgroundColor:h2r(col,.65),borderColor:col,pointRadius:5,pointHoverRadius:7,showLine:false,order:2},
+      {label:'Modelo Wood',data:curve,borderColor:col,backgroundColor:h2r(col,.08),borderWidth:2.5,pointRadius:0,showLine:true,fill:true,tension:0,order:1}
+    ]},
+    options:{
+      responsive:true,maintainAspectRatio:true,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`(${ctx.parsed.x.toFixed(1)} ${tLbl}, ${ctx.parsed.y.toFixed(2)} ${unit})`}}},
+      scales:{
+        x:{title:{display:true,text:tLbl==='días'?'Días en leche (DEL)':'Semanas en lactancia',font:{size:11}},grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}},
+        y:{title:{display:true,text:unit,font:{size:11}},beginAtZero:false,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}
+      }
+    }
+  });
+  ch._peakT=r.tP; ch._peakUnit=tLbl;
+  ch.update();
+}
+
+// ── Example data ─────────────────────────────────────────────────────────────
+function loadEx(){
+  const ex=`7\t18.5\n14\t22.3\n21\t24.1\n28\t23.8\n35\t23.0\n42\t22.1\n56\t21.5\n70\t20.8\n84\t19.6\n98\t18.9\n112\t17.8\n126\t16.5\n140\t15.2\n154\t14.1\n168\t13.0\n182\t11.8\n196\t10.9\n210\t10.1\n224\t9.4\n238\t8.7\n252\t8.1\n266\t7.5`;
+  document.getElementById('dataIn').value=ex;
+  cows[ai].raw=ex; updateStat();
+}
+
+// ── Export CSV ────────────────────────────────────────────────────────────────
+function exportCSV(){
+  const c=cows[ai];
+  if(!c.res||c.res.err){alert('Primero ajuste el modelo para poder exportar.');return;}
+  const r=c.res,unit=c.unit||'L/día';
+  let csv=`Curva de Lactancia — Modelo Wood\nVaca,${c.name}\n\nParámetros\na,${r.a}\nb,${r.b}\nc,${r.c}\nt_pico (${c.unit.includes('semana')?'semanas':'días'}),${r.tP.toFixed(3)}\ny_max (${unit}),${r.yM.toFixed(3)}\nPersistencia s,${r.s.toFixed(4)}\nR2,${r.r2.toFixed(4)}\nRMSE,${r.rmse.toFixed(4)}\nn observaciones,${r.n}\n\nDatos\nDEL,Observado (${unit}),Ajustado (${unit}),Residuo\n`;
+  r.d.forEach((p,i)=>{csv+=`${p.t},${p.y.toFixed(3)},${r.yH[i].toFixed(3)},${(p.y-r.yH[i]).toFixed(3)}\n`;});
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`curva_Wood_${c.name.replace(/\s+/g,'_')}.csv`;
+  a.click();
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+renderTabs();
+loadUI();
+</script>
+</body>
+</html>
